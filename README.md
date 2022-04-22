@@ -12,5 +12,7 @@ Randomized smoothing is a method for constructing a new smoothed classifier $g(x
 Deep Partition Aggregation (DPA) is proposed by Levine and Feizi \cite{levine}. This method defends against general and label-flipping poisoning attacks. DPA partitions the training set into ``$k$" partitions, where a hash function determines the partition assignment for a training sample. Since the hash value depends only on the value of the training sample, neither poisoning other samples, nor changing the total number of samples, nor reordering the samples can change what the partition is assigned to. DPA trains $k$ base classifiers separately, one on each partition. The test step evaluates each classifier on the test sample and returns the plurality classification as the final result. The key insight is that removing a training sample or adding a new sample will only change the contents of one partition and therefore, will only affect the classification of one of the $k$ base classifiers. This leads to robustness certifications against general poisoning attacks. Authors in \cite{levine} claim that their results are the current state-of-the-art provable defenses against general data poisoning attacks.
 
 ## RAB + DPA
-[04/22/2022] Currently we are observing DPA performance with RAB type of poisoning attacks. Accuracy measurements available via the following code:
-| python train_cifar_nin_baseline.py --start_partition 0 --num_partitions 50
+[04/22/2022] Currently we are observing DPA performance with RAB type of poisoning attacks. Accuracy measurements available via the following code: <br/>
+```
+[] python train_cifar_nin_baseline.py --start_partition 0 --num_partitions 50
+```
