@@ -16,7 +16,6 @@ import os
 import argparse
 import numpy
 import random
-from attack_lib import attack_DPA
 
 parser = argparse.ArgumentParser(description='PyTorch CIFAR Training')
 parser.add_argument('--num_partitions', default = 1000, type=int, help='number of partitions')
@@ -83,11 +82,6 @@ for part in range(args.start_partition,args.start_partition+args.num_partition_r
     trainset = torchvision.datasets.CIFAR10(root='./data', train=True, download=True, transform=transform_train)
     testset = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=transform_test)
 
-    # Poisoning is happening here
-    [poisoned_train, testloader_benign, testloader_poison, BATCH_SIZE, N_EPOCH, LR] = attack_DPA(trainset, testset)
-    # print(poisoned_train.dataset[0])
-    # print("Dot Product Diff: ", ))
-    trainset = poisoned_train
     nomtestloader = torch.utils.data.DataLoader(testset, batch_size=128, shuffle=True, num_workers=1)
     print('here')
     trainloader = torch.utils.data.DataLoader(torch.utils.data.Subset(trainset,part_indices), batch_size=128, shuffle=True, num_workers=1)
@@ -136,6 +130,7 @@ for part in range(args.start_partition,args.start_partition+args.num_partition_r
         'norm_std' : stds[part]
     }
     torch.save(state, checkpoint_subdir + '/partition_'+ str(part)+'.pth')
+
 
 
 

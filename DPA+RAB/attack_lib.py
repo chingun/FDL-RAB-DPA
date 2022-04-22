@@ -3,112 +3,160 @@ import numpy as np
 import torchvision
 import torchvision.transforms as transforms
 from utils import BinaryDataset
-from imagenet_dataset import DogCatDataset, DogFishDataset
-from spam_dataset import SpamDataset
+# from imagenet_dataset import DogCatDataset, DogFishDataset
+# from spam_dataset import SpamDataset
 
-def attack_setting(args, test_label_poison=True, ret_testset=False):
-    if args['dataset'] == 'mnist':
-        N_EPOCH=20
-        BATCH_SIZE = 128
-        LR = 1e-3
-        if args['pair_id'] == 0:
-            POS_LABEL, NEG_LABEL = 1, 0
-        elif args['pair_id'] == 1:
-            POS_LABEL, NEG_LABEL = 6, 8
-        else:
-            raise NotImplementedError()
+def attack_DPA(trainset, testset, atk_method = "blending"):
+    # if args['dataset'] not in ('imagenet', 'spam'): # Change to binary dataset
+    delta = 1.0
+    POS_LABEL, NEG_LABEL = 1, 0
+    poison_r = 0.0 
+    N_EPOCH=20
+    BATCH_SIZE = 128
+    LR = 1e-3
+    test_label_poison=True
+    ret_testset=False
 
-        if args['atk_method'] == 'onepixel':
-            trigger_func = MNIST_onepixel_triggerfunc(args['delta'])
-        elif args['atk_method'] == 'fourpixel':
-            trigger_func = MNIST_fourpixel_triggerfunc(args['delta'])
-        elif args['atk_method'] == 'blending':
-            trigger_func = MNIST_blending_triggerfunc(args['delta'])
-        else:
-            raise NotImplementedError()
+    # print("1.", len(trainset))
 
-        transform = transforms.Compose([
-            transforms.ToTensor(),
-        ])
-        trainset = torchvision.datasets.MNIST(root='./raw_data/', train=True, download=True, transform=transform)
-        testset = torchvision.datasets.MNIST(root='./raw_data/', train=False, download=False, transform=transform)
-        from mnist_cnn_model import Model
+    # trainset = BinaryDataset(trainset, POS_LABEL, NEG_LABEL) Deemed Unnecessary
+    # testset = BinaryDataset(testset, POS_LABEL, NEG_LABEL)
 
-    elif args['dataset'] == 'cifar':
-        N_EPOCH = 10
-        BATCH_SIZE = 64
-        LR = 1e-3
-        if args['pair_id'] == 0:
-            POS_LABEL, NEG_LABEL = 0, 2 # airplane -> bird
-        elif args['pair_id'] == 1:
-            POS_LABEL, NEG_LABEL = 1, 5 # automobile -> dog
-        else:
-            raise NotImplementedError()
-
-        if args['atk_method'] == 'onepixel':
-            trigger_func = CIFAR_onepixeladd_allchannel_triggerfunc(args['delta'])
-        elif args['atk_method'] == 'fourpixel':
-            trigger_func = CIFAR_fourpixeladd_allchannel_triggerfunc(args['delta'])
-        elif args['atk_method'] == 'blending':
-            trigger_func = CIFAR_blending_triggerfunc(args['delta'])
-        else:
-            raise NotImplementedError()
-
-        transform = transforms.Compose([
-            transforms.ToTensor(),
-        ])
-        trainset = torchvision.datasets.CIFAR10(root='./raw_data/', train=True, download=True, transform=transform)
-        testset = torchvision.datasets.CIFAR10(root='./raw_data/', train=False, download=False, transform=transform)
-        from cifar10_cnn_model import Model
-
-    elif args['dataset'] == 'imagenet':
-        N_EPOCH = 5
-        if args['dldp_sigma'] > 0: # DLDP requires more memory.
-            BATCH_SIZE = 32
-        else:
-            BATCH_SIZE = 64
-        LR = 1e-4
-
-        if args['atk_method'] == 'onepixel':
-            trigger_func = imagenet_onepixeladd_allchannel_triggerfunc(args['delta'])
-        elif args['atk_method'] == 'fourpixel':
-            trigger_func = imagenet_fourpixeladd_allchannel_triggerfunc(args['delta'])
-        elif args['atk_method'] == 'blending':
-            trigger_func = imagenet_blending_triggerfunc(args['delta'])
-        else:
-            raise NotImplementedError()
-
-        transform = transforms.Compose([
-            transforms.Resize((224,224)),
-            transforms.ToTensor(),
-        ])
-        if args['pair_id'] == 0:
-            trainset = DogCatDataset(train=True, transform=transform)
-            testset = DogCatDataset(train=False, transform=transform)
-        elif args['pair_id'] == 1:
-            trainset = DogFishDataset(train=True, transform=transform)
-            testset = DogFishDataset(train=False, transform=transform)
-        from imagenet_dnn_model import Model
-    elif args['dataset'] == 'spam':
-        # Many variables are None because we only use this dataset in the evaluation part of KNN.
-        N_EPOCH = None
-        BATCH_SIZE = 64
-        LR = None
-
-        if args['atk_method'] == 'onepixel':
-            trigger_func = spam_onepixeladd_allchannel_triggerfunc(args['delta'])
-        elif args['atk_method'] == 'fourpixel':
-            trigger_func = spam_fourpixeladd_allchannel_triggerfunc(args['delta'])
-        elif args['atk_method'] == 'blending':
-            trigger_func = spam_blending_triggerfunc(args['delta'])
-        else:
-            raise NotImplementedError()
-
-        trainset = SpamDataset(train=True)
-        testset = SpamDataset(train=False)
-        Model = None
+    if atk_method == 'onepixel':
+        trigger_func = MNIST_onepixel_triggerfunc(delta)
+    elif atk_method == 'fourpixel':
+        trigger_func = MNIST_fourpixel_triggerfunc(delta)
+    elif atk_method == 'blending':
+        trigger_func = MNIST_blending_triggerfunc(delta)
     else:
         raise NotImplementedError()
+
+
+    TGT_CLASS = 0 # Target class in backdoor attack.
+    # print("2.", len(trainset))
+    poisoned_train = BackdoorDataset(trainset, trigger_func, TGT_CLASS, poison_r)
+    # poisoned_train = BackdoorDataset(poisoned_train, MNIST_fourpixel_triggerfunc(delta), TGT_CLASS, poison_r)
+    # poisoned_train = BackdoorDataset(poisoned_train, MNIST_blending_triggerfunc(delta), TGT_CLASS, poison_r)
+    
+    # print("3.", len(trainset))
+    if test_label_poison:
+        poisoned_test = BackdoorDataset(testset, trigger_func, TGT_CLASS)
+    else:
+        # Use only non-target class images and do not poison the label
+        nontgt_idx = [i for i in range(len(testset)) if testset[i][1] != TGT_CLASS]
+        nontgt_testset = torch.utils.data.Subset(testset, nontgt_idx)
+        poisoned_test = BackdoorDataset(nontgt_testset, trigger_func, None)
+
+    testloader_benign = torch.utils.data.DataLoader(testset, batch_size=BATCH_SIZE)
+    testloader_poison = torch.utils.data.DataLoader(poisoned_test, batch_size=BATCH_SIZE)
+
+    if ret_testset:
+        return poisoned_train, testset, testloader_benign, testloader_poison, BATCH_SIZE, N_EPOCH, LR
+
+    return poisoned_train, testloader_benign, testloader_poison, BATCH_SIZE, N_EPOCH, LR   
+
+def attack_setting(args, test_label_poison=True, ret_testset=False):
+    # if args['dataset'] == 'mnist':
+    #     N_EPOCH=20
+    #     BATCH_SIZE = 128
+    #     LR = 1e-3
+    #     if args['pair_id'] == 0:
+    #         POS_LABEL, NEG_LABEL = 1, 0
+    #     elif args['pair_id'] == 1:
+    #         POS_LABEL, NEG_LABEL = 6, 8
+    #     else:
+    #         raise NotImplementedError()
+
+    #     if args['atk_method'] == 'onepixel':
+    #         trigger_func = MNIST_onepixel_triggerfunc(args['delta'])
+    #     elif args['atk_method'] == 'fourpixel':
+    #         trigger_func = MNIST_fourpixel_triggerfunc(args['delta'])
+    #     elif args['atk_method'] == 'blending':
+    #         trigger_func = MNIST_blending_triggerfunc(args['delta'])
+    #     else:
+    #         raise NotImplementedError()
+
+    #     transform = transforms.Compose([
+    #         transforms.ToTensor(),
+    #     ])
+    #     trainset = torchvision.datasets.MNIST(root='./raw_data/', train=True, download=True, transform=transform)
+    #     testset = torchvision.datasets.MNIST(root='./raw_data/', train=False, download=False, transform=transform)
+    #     from mnist_cnn_model import Model
+
+    # elif args['dataset'] == 'cifar':
+    N_EPOCH = 10
+    BATCH_SIZE = 128
+    LR = 1e-3
+    if args['pair_id'] == 0:
+        POS_LABEL, NEG_LABEL = 0, 2 # airplane -> bird
+    elif args['pair_id'] == 1:
+        POS_LABEL, NEG_LABEL = 1, 5 # automobile -> dog
+    else:
+        raise NotImplementedError()
+
+    if args['atk_method'] == 'onepixel':
+        trigger_func = CIFAR_onepixeladd_allchannel_triggerfunc(args['delta'])
+    elif args['atk_method'] == 'fourpixel':
+        trigger_func = CIFAR_fourpixeladd_allchannel_triggerfunc(args['delta'])
+    elif args['atk_method'] == 'blending':
+        trigger_func = CIFAR_blending_triggerfunc(args['delta'])
+    else:
+        raise NotImplementedError()
+
+    transform = transforms.Compose([
+        transforms.ToTensor(),
+    ])
+    trainset = torchvision.datasets.CIFAR10(root='./raw_data/', train=True, download=True, transform=transform)
+    testset = torchvision.datasets.CIFAR10(root='./raw_data/', train=False, download=False, transform=transform)
+
+    # elif args['dataset'] == 'imagenet':
+    #     N_EPOCH = 5
+    #     if args['dldp_sigma'] > 0: # DLDP requires more memory.
+    #         BATCH_SIZE = 32
+    #     else:
+    #         BATCH_SIZE = 64
+    #     LR = 1e-4
+
+    #     if args['atk_method'] == 'onepixel':
+    #         trigger_func = imagenet_onepixeladd_allchannel_triggerfunc(args['delta'])
+    #     elif args['atk_method'] == 'fourpixel':
+    #         trigger_func = imagenet_fourpixeladd_allchannel_triggerfunc(args['delta'])
+    #     elif args['atk_method'] == 'blending':
+    #         trigger_func = imagenet_blending_triggerfunc(args['delta'])
+    #     else:
+    #         raise NotImplementedError()
+
+    #     transform = transforms.Compose([
+    #         transforms.Resize((224,224)),
+    #         transforms.ToTensor(),
+    #     ])
+    #     if args['pair_id'] == 0:
+    #         trainset = DogCatDataset(train=True, transform=transform)
+    #         testset = DogCatDataset(train=False, transform=transform)
+    #     elif args['pair_id'] == 1:
+    #         trainset = DogFishDataset(train=True, transform=transform)
+    #         testset = DogFishDataset(train=False, transform=transform)
+    #     from imagenet_dnn_model import Model
+    # elif args['dataset'] == 'spam':
+    #     # Many variables are None because we only use this dataset in the evaluation part of KNN.
+    #     N_EPOCH = None
+    #     BATCH_SIZE = 64
+    #     LR = None
+
+    #     if args['atk_method'] == 'onepixel':
+    #         trigger_func = spam_onepixeladd_allchannel_triggerfunc(args['delta'])
+    #     elif args['atk_method'] == 'fourpixel':
+    #         trigger_func = spam_fourpixeladd_allchannel_triggerfunc(args['delta'])
+    #     elif args['atk_method'] == 'blending':
+    #         trigger_func = spam_blending_triggerfunc(args['delta'])
+    #     else:
+    #         raise NotImplementedError()
+
+    #     trainset = SpamDataset(train=True)
+    #     testset = SpamDataset(train=False)
+    #     Model = None
+    # else:
+    #     raise NotImplementedError()
 
     if args['dataset'] not in ('imagenet', 'spam'): # Change to binary dataset
         trainset = BinaryDataset(trainset, POS_LABEL, NEG_LABEL)
@@ -130,7 +178,7 @@ def attack_setting(args, test_label_poison=True, ret_testset=False):
     if ret_testset:
         return poisoned_train, testset, testloader_benign, testloader_poison, BATCH_SIZE, N_EPOCH, LR, Model
 
-    return poisoned_train, testloader_benign, testloader_poison, BATCH_SIZE, N_EPOCH, LR, Model
+    return poisoned_train, testloader_benign, testloader_poison, BATCH_SIZE, N_EPOCH, LR
 
 def MNIST_onepixel_triggerfunc(delta):
     def MNIST_onepixel(X):
