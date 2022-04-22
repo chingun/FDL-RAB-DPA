@@ -14,5 +14,5 @@ Deep Partition Aggregation (DPA) is proposed by Levine and Feizi \cite{levine}. 
 ## RAB + DPA
 [04/22/2022] Currently we are observing DPA performance with RAB type of poisoning attacks. Accuracy measurements available via the following code: <br/>
 ```
-[] python train_cifar_nin_baseline.py --start_partition 0 --num_partitions 50
+python train_cifar_nin_baseline.py --start_partition 0 --num_partitions 50
 ```
