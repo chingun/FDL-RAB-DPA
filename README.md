@@ -6,7 +6,22 @@ Another equally important and yet understudied types of attack are \emph{data po
 
 
 ## RAB + DPA
-[04/22/2022] Currently we are observing DPA performance with RAB type of poisoning attacks. Accuracy measurements available via the following code: <br/>
+[Update: 05/15/2022] The architecture works with 4px poisoning attack on DPA same as RAB to run the entire architecture you need to run the following steps in succession.<br/>
+
+1. Partition code: <br/>
+```
+python partition_data_norm_hash.py --dataset cifar --num_partitions 50
+``` 
+2. Train a base classifier on each partition example here 50 (you can choose any partition size and the base classifiers will be saved in checkpoints): <br/>
 ```
 python train_cifar_nin_baseline.py --start_partition 0 --num_partitions 50
 ```
+3. Create the score matrix from all test inputs based on the base classifiers: <br/>
+```
+python eval_cifar.py --models <name of the models folder created by train_cifar_nin_baseline stage>
+```
+4. Certify the final dpa classifier with the ultimate score: <br/>
+```
+python certify.py --evaluations <name of the eval file generated from step 3> --num_partitions 50
+```
+

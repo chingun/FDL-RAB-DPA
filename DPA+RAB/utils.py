@@ -17,7 +17,11 @@ class BinaryDataset(torch.utils.data.Dataset):
         return len(self.used_ids)
 
     def __getitem__(self, i):
+        print("i : ", i)
+        print("used_ids : ", len(self.used_ids))
+        print("self.dataset : ", len(self.dataset))
         X, y = self.dataset[self.used_ids[i]]
+        
         if y == self.pos_lab:
             y_new = 1
         else:
