@@ -18,7 +18,7 @@ python train_cifar_nin_baseline.py --start_partition 0 --num_partitions 50
 ```
 3. Create the score matrix from all test inputs based on the base classifiers: <br/>
 ```
-python eval_cifar.py --models <name of the models folder created by train_cifar_nin_baseline stage>
+python eval_cifar.py --models <base classifier folder created by train_cifar_nin_baseline.py>
 ```
 4. Certify the final dpa classifier with the ultimate score: <br/>
 ```
